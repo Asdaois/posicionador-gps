@@ -1,15 +1,17 @@
 /**************************************************************
  *
- * This script tries to auto-detect the baud rate
- * and allows direct AT commands access
- *
  * TinyGSM Getting Started guide:
  *   https://tiny.cc/tinygsm-readme
  *
+ * NOTE:
+ * Some of the functions may be unavailable for your modem.
+ * Just comment them out.
+ *
  **************************************************************/
+#define TINY_GSM_MODEM_SIM7000 // Importante: Modem en uso 
 
-#define TINY_GSM_MODEM_SIM7000
-// Set serial for debug console (to the Serial Monitor, speed 115200)
+
+// Set serial for debug console (to the Serial Monitor, default speed 115200)
 #define SerialMon Serial
 
 // Set serial for AT commands (to the module)
@@ -23,51 +25,156 @@
 SoftwareSerial SerialAT(2, 3);  // RX, TX
 #endif
 
+// See all AT commands, if wanted
+// #define DUMP_AT_COMMANDS
+
+// Define the serial console for debug prints, if needed
 #define TINY_GSM_DEBUG SerialMon
+
+// Range to attempt to autobaud
+// NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
+// communication, set a fixed baud rate using modem.setBaud(#).
+#define GSM_AUTOBAUD_MIN 9600
+#define GSM_AUTOBAUD_MAX 9600
+
+// Add a reception delay, if needed.
+// This may be needed for a fast processor at a slow baud rate.
+// #define TINY_GSM_YIELD() { delay(2); }
+
+/*
+ * Tests enabled
+ */
+#define TINY_GSM_TEST_GPRS true
+#define TINY_GSM_TEST_WIFI false
+#define TINY_GSM_TEST_TCP true
+#define TINY_GSM_TEST_SSL true
+#define TINY_GSM_TEST_CALL false
+#define TINY_GSM_TEST_SMS false
+#define TINY_GSM_TEST_USSD false
+#define TINY_GSM_TEST_BATTERY true
+#define TINY_GSM_TEST_TEMPERATURE true
+#define TINY_GSM_TEST_GSM_LOCATION false
+#define TINY_GSM_TEST_NTP false
+#define TINY_GSM_TEST_TIME false
+#define TINY_GSM_TEST_GPS false
+// disconnect and power down modem after tests
+#define TINY_GSM_POWERDOWN false
+
+// set GSM PIN, if any
+#define GSM_PIN ""
+
+// Set phone numbers, if you want to test SMS and Calls
+// #define SMS_TARGET  "+380xxxxxxxxx"
+// #define CALL_TARGET "+380xxxxxxxxx"
+
+// Your GPRS credentials, if any
+const char apn[] = "YourAPN";
+// const char apn[] = "ibasis.iot";
+const char gprsUser[] = "";
+const char gprsPass[] = "";
+
+// Your WiFi connection credentials, if applicable
+const char wifiSSID[] = "YourSSID";
+const char wifiPass[] = "YourWiFiPass";
+
+// Server details to test TCP/SSL
+const char server[]   = "vsh.pp.ua";
+const char resource[] = "/TinyGSM/logo.txt";
 
 #include <TinyGsmClient.h>
 
-// Module baud rate
-uint32_t rate = 0; // Set to 0 for Auto-Detect
+#if TINY_GSM_TEST_GPRS && not defined TINY_GSM_MODEM_HAS_GPRS
+#undef TINY_GSM_TEST_GPRS
+#undef TINY_GSM_TEST_WIFI
+#define TINY_GSM_TEST_GPRS false
+#define TINY_GSM_TEST_WIFI true
+#endif
+#if TINY_GSM_TEST_WIFI && not defined TINY_GSM_MODEM_HAS_WIFI
+#undef TINY_GSM_USE_GPRS
+#undef TINY_GSM_USE_WIFI
+#define TINY_GSM_USE_GPRS true
+#define TINY_GSM_USE_WIFI false
+#endif
+
+#ifdef DUMP_AT_COMMANDS
+#include <StreamDebugger.h>
+StreamDebugger debugger(SerialAT, SerialMon);
+TinyGsm        modem(debugger);
+#else
+TinyGsm        modem(SerialAT);
+#endif
 
 void setup() {
   // Set console baud rate
   SerialMon.begin(115200);
+  delay(10);
+
+  // !!!!!!!!!!!
+  // Set your reset, enable, power pins here
+  // !!!!!!!!!!!
+
+  DBG("Wait...");
   delay(6000);
+
+  // Set GSM module baud rate
+  TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
+  // SerialAT.begin(9600);
 }
 
 void loop() {
+  // Restart takes quite some time
+  // To skip it, call init() instead of restart()
+  DBG("Initializing modem...");
 
-  if (!rate) {
-    rate = TinyGsmAutoBaud(SerialAT);
-  }
+  String name = modem.getModemName();
+  DBG("Modem Name:", name);
 
-  if (!rate) {
-    SerialMon.println(F("***********************************************************"));
-    SerialMon.println(F(" Module does not respond!"));
-    SerialMon.println(F("   Check your Serial wiring"));
-    SerialMon.println(F("   Check the module is correctly powered and turned on"));
-    SerialMon.println(F("***********************************************************"));
-    delay(30000L);
-    return;
-  }
+  String modemInfo = modem.getModemInfo();
+  DBG("Modem Info:", modemInfo);
 
-  SerialAT.begin(rate);
-
-  // Access AT commands from Serial Monitor
-  SerialMon.println(F("***********************************************************"));
-  SerialMon.println(F(" You can now send AT commands"));
-  SerialMon.println(F(" Enter \"AT\" (without quotes), and you should see \"OK\""));
-  SerialMon.println(F(" If it doesn't work, select \"Both NL & CR\" in Serial Monitor"));
-  SerialMon.println(F("***********************************************************"));
-
-  while(true) {
-    if (SerialAT.available()) {
-      SerialMon.write(SerialAT.read());
+  DBG("Enabling GPS/GNSS/GLONASS and waiting 15s for warm-up");
+  modem.enableGPS();
+  delay(15000L);
+  float lat2      = 0;
+  float lon2      = 0;
+  float speed2    = 0;
+  float alt2      = 0;
+  int   vsat2     = 0;
+  int   usat2     = 0;
+  float accuracy2 = 0;
+  int   year2     = 0;
+  int   month2    = 0;
+  int   day2      = 0;
+  int   hour2     = 0;
+  int   min2      = 0;
+  int   sec2      = 0;
+  for (int8_t i = 15; i; i--) {
+    DBG("Requesting current GPS/GNSS/GLONASS location");
+    if (modem.getGPS(&lat2, &lon2, &speed2, &alt2, &vsat2, &usat2, &accuracy2,
+                     &year2, &month2, &day2, &hour2, &min2, &sec2)) {
+      DBG("Latitude:", String(lat2, 8), "\tLongitude:", String(lon2, 8));
+      DBG("Speed:", speed2, "\tAltitude:", alt2);
+      DBG("Visible Satellites:", vsat2, "\tUsed Satellites:", usat2);
+      DBG("Accuracy:", accuracy2);
+      DBG("Year:", year2, "\tMonth:", month2, "\tDay:", day2);
+      DBG("Hour:", hour2, "\tMinute:", min2, "\tSecond:", sec2);
+      break;
+    } else {
+      DBG("Couldn't get GPS/GNSS/GLONASS location, retrying in 15s.");
+      delay(15000L);
     }
-    if (SerialMon.available()) {
-      SerialAT.write(SerialMon.read());
-    }
-    delay(0);
   }
+  DBG("Retrieving GPS/GNSS/GLONASS location again as a string");
+  String gps_raw = modem.getGPSraw();
+  DBG("GPS/GNSS Based Location String:", gps_raw);
+  DBG("Disabling GPS");
+  modem.disableGPS();
+
+#if TINY_GSM_TEST_TEMPERATURE && defined TINY_GSM_MODEM_HAS_TEMPERATURE
+  float temp = modem.getTemperature();
+  DBG("Chip temperature:", temp);
+#endif
+
+  // Do nothing forevermore
+  while (true) { modem.maintain(); }
 }
