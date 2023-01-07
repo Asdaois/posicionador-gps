@@ -44,57 +44,10 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 /*
  * Tests enabled
  */
-#define TINY_GSM_TEST_GPRS true
-#define TINY_GSM_TEST_WIFI false
-#define TINY_GSM_TEST_TCP true
-#define TINY_GSM_TEST_SSL true
-#define TINY_GSM_TEST_CALL false
-#define TINY_GSM_TEST_SMS false
-#define TINY_GSM_TEST_USSD false
-#define TINY_GSM_TEST_BATTERY true
-#define TINY_GSM_TEST_TEMPERATURE true
-#define TINY_GSM_TEST_GSM_LOCATION false
-#define TINY_GSM_TEST_NTP false
-#define TINY_GSM_TEST_TIME false
-#define TINY_GSM_TEST_GPS false
-// disconnect and power down modem after tests
-#define TINY_GSM_POWERDOWN false
 
-// set GSM PIN, if any
-#define GSM_PIN ""
-
-// Set phone numbers, if you want to test SMS and Calls
-// #define SMS_TARGET  "+380xxxxxxxxx"
-// #define CALL_TARGET "+380xxxxxxxxx"
-
-// Your GPRS credentials, if any
-const char apn[] = "YourAPN";
-// const char apn[] = "ibasis.iot";
-const char gprsUser[] = "";
-const char gprsPass[] = "";
-
-// Your WiFi connection credentials, if applicable
-const char wifiSSID[] = "YourSSID";
-const char wifiPass[] = "YourWiFiPass";
-
-// Server details to test TCP/SSL
-const char server[]   = "vsh.pp.ua";
-const char resource[] = "/TinyGSM/logo.txt";
 
 #include <TinyGsmClient.h>
 
-#if TINY_GSM_TEST_GPRS && not defined TINY_GSM_MODEM_HAS_GPRS
-#undef TINY_GSM_TEST_GPRS
-#undef TINY_GSM_TEST_WIFI
-#define TINY_GSM_TEST_GPRS false
-#define TINY_GSM_TEST_WIFI true
-#endif
-#if TINY_GSM_TEST_WIFI && not defined TINY_GSM_MODEM_HAS_WIFI
-#undef TINY_GSM_USE_GPRS
-#undef TINY_GSM_USE_WIFI
-#define TINY_GSM_USE_GPRS true
-#define TINY_GSM_USE_WIFI false
-#endif
 
 #ifdef DUMP_AT_COMMANDS
 #include <StreamDebugger.h>
@@ -119,10 +72,7 @@ void setup() {
   // Set GSM module baud rate
   TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
   // SerialAT.begin(9600);
-}
-
-void loop() {
-  // Restart takes quite some time
+    // Restart takes quite some time
   // To skip it, call init() instead of restart()
   DBG("Initializing modem...");
 
@@ -132,8 +82,12 @@ void loop() {
   String modemInfo = modem.getModemInfo();
   DBG("Modem Info:", modemInfo);
 
+  
   DBG("Enabling GPS/GNSS/GLONASS and waiting 15s for warm-up");
   modem.enableGPS();
+}
+
+void loop() {
   delay(15000L);
   float lat2      = 0;
   float lon2      = 0;
@@ -167,14 +121,4 @@ void loop() {
   DBG("Retrieving GPS/GNSS/GLONASS location again as a string");
   String gps_raw = modem.getGPSraw();
   DBG("GPS/GNSS Based Location String:", gps_raw);
-  DBG("Disabling GPS");
-  modem.disableGPS();
-
-#if TINY_GSM_TEST_TEMPERATURE && defined TINY_GSM_MODEM_HAS_TEMPERATURE
-  float temp = modem.getTemperature();
-  DBG("Chip temperature:", temp);
-#endif
-
-  // Do nothing forevermore
-  while (true) { modem.maintain(); }
 }
