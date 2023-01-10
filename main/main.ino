@@ -57,23 +57,22 @@ TinyGsm        modem(debugger);
 TinyGsm        modem(SerialAT);
 #endif
 
+// Your GPRS credentials, if any
+const char server[] = "https://api.thingspeak.com/";
+// GET https://api.thingspeak.com/update?api_key=0LM3KKFRE13A0NK9&field1=0
+const char resource = "update?api_key=0LM3KKFRE13A0NK9&raw=";
+
 void setup() {
   // Set console baud rate
   SerialMon.begin(115200);
   delay(10);
-
-  // !!!!!!!!!!!
-  // Set your reset, enable, power pins here
-  // !!!!!!!!!!!
 
   DBG("Wait...");
   delay(6000);
 
   // Set GSM module baud rate
   TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
-  // SerialAT.begin(9600);
-    // Restart takes quite some time
-  // To skip it, call init() instead of restart()
+
   DBG("Initializing modem...");
 
   String name = modem.getModemName();
@@ -82,36 +81,41 @@ void setup() {
   String modemInfo = modem.getModemInfo();
   DBG("Modem Info:", modemInfo);
 
-  
+  DBG("Connecting to", server);
+  if (!modem.gprsConnect(server)) {
+    delay(10000);
+    return;
+  }
+
   DBG("Enabling GPS/GNSS/GLONASS and waiting 15s for warm-up");
   modem.enableGPS();
 }
 
 void loop() {
   delay(15000L);
-  float lat2      = 0;
-  float lon2      = 0;
-  float speed2    = 0;
-  float alt2      = 0;
-  int   vsat2     = 0;
-  int   usat2     = 0;
-  float accuracy2 = 0;
-  int   year2     = 0;
-  int   month2    = 0;
-  int   day2      = 0;
-  int   hour2     = 0;
-  int   min2      = 0;
-  int   sec2      = 0;
+  float lat      = 0;
+  float lon      = 0;
+  float speed    = 0;
+  float alt      = 0;
+  int   vsat     = 0;
+  int   usat     = 0;
+  float accuracy = 0;
+  int   year     = 0;
+  int   month    = 0;
+  int   day      = 0;
+  int   hour     = 0;
+  int   min      = 0;
+  int   sec      = 0;
   for (int8_t i = 15; i; i--) {
     DBG("Requesting current GPS/GNSS/GLONASS location");
-    if (modem.getGPS(&lat2, &lon2, &speed2, &alt2, &vsat2, &usat2, &accuracy2,
-                     &year2, &month2, &day2, &hour2, &min2, &sec2)) {
-      DBG("Latitude:", String(lat2, 8), "\tLongitude:", String(lon2, 8));
-      DBG("Speed:", speed2, "\tAltitude:", alt2);
-      DBG("Visible Satellites:", vsat2, "\tUsed Satellites:", usat2);
-      DBG("Accuracy:", accuracy2);
-      DBG("Year:", year2, "\tMonth:", month2, "\tDay:", day2);
-      DBG("Hour:", hour2, "\tMinute:", min2, "\tSecond:", sec2);
+    if (modem.getGPS(&lat, &lon, &speed, &alt, &vsat, &usat, &accuracy,
+                     &year, &month, &day, &hour, &min, &sec)) {
+      DBG("Latitude:", String(lat, 8), "\tLongitude:", String(lon, 8));
+      DBG("Speed:", speed, "\tAltitude:", alt);
+      DBG("Visible Satellites:", vsat, "\tUsed Satellites:", usat);
+      DBG("Accuracy:", accuracy);
+      DBG("Year:", year, "\tMonth:", month, "\tDay:", day);
+      DBG("Hour:", hour, "\tMinute:", min, "\tSecond:", sec);
       break;
     } else {
       DBG("Couldn't get GPS/GNSS/GLONASS location, retrying in 15s.");
@@ -119,6 +123,65 @@ void loop() {
     }
   }
   DBG("Retrieving GPS/GNSS/GLONASS location again as a string");
-  String gps_raw = modem.getGPSraw();
-  DBG("GPS/GNSS Based Location String:", gps_raw);
+  String gpsRaw = modem.getGPSraw();
+  DBG("GPS/GNSS Based Location String:", gpsRaw);
+
+  bool res = modem.isGprsConnected();
+  DBG("GPRS status:", res ? "connected" : "not connected");
+  if (modem.isNetworkConnected()) { DBG("Network connected"); }
+
+    String ccid = modem.getSimCCID();
+  DBG("CCID:", ccid);
+
+  String imei = modem.getIMEI();
+  DBG("IMEI:", imei);
+
+  String imsi = modem.getIMSI();
+  DBG("IMSI:", imsi);
+
+  String cop = modem.getOperator();
+  DBG("Operator:", cop);
+
+  IPAddress local = modem.localIP();
+  DBG("Local IP:", local);
+
+  int csq = modem.getSignalQuality();
+  DBG("Signal quality:", csq);
+
+  TinyGsmClient client(modem, 0);
+  const int port = 80;
+  DBG("Connecting to", server);
+  if (!client.connect(server, port)) {
+    DBG("... failed");
+  } else {
+    // Make a HTTP GET request:
+    client.print(String("GET ") + resource + gpsRaw + " HTTP/1.0\r\n");
+    client.print(String("Host: ") + server + "\r\n");
+    client.print("Connection: close\r\n\r\n");
+
+    // Wait for data to arrive
+    uint32_t start = millis();
+    while (client.connected() && !client.available() &&
+           millis() - start < 30000L) {
+      delay(100);
+    };
+
+    // Read data
+    start = millis();
+    char logo[640] = {
+        '\0',
+    };
+    int read_chars = 0;
+    while (client.connected() && millis() - start < 10000L) {
+      while (client.available()) {
+        logo[read_chars]     = client.read();
+        logo[read_chars + 1] = '\0';
+        read_chars++;
+        start = millis();
+      }
+    }
+    SerialMon.println(logo);
+    DBG("#####  RECEIVED:", strlen(logo), "CHARACTERS");
+    client.stop();
+  }
 }
