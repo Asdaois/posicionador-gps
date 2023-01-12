@@ -25,6 +25,21 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 
 #define TINY_GSM_DEBUG SerialMon
 
+// Range to attempt to autobaud
+// NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
+// communication, set a fixed baud rate using modem.setBaud(#).
+#define GSM_AUTOBAUD_MIN 9600
+#define GSM_AUTOBAUD_MAX 115200
+
+// Add a reception delay, if needed.
+// This may be needed for a fast processor at a slow baud rate.
+// #define TINY_GSM_YIELD() { delay(2); }
+
+/*
+ * Tests enabled
+ */
+
+
 #include <TinyGsmClient.h>
 
 // Module baud rate
