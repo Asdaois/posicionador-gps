@@ -35,7 +35,7 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
 // communication, set a fixed baud rate using modem.setBaud(#).
 #define GSM_AUTOBAUD_MIN 9600
-#define GSM_AUTOBAUD_MAX 9600
+#define GSM_AUTOBAUD_MAX 115200
 
 // Add a reception delay, if needed.
 // This may be needed for a fast processor at a slow baud rate.
@@ -58,16 +58,16 @@ TinyGsm        modem(SerialAT);
 #endif
 
 // Your GPRS credentials, if any
-const char server[] = "https://api.thingspeak.com/";
+const char server[] = "api.thingspeak.com";
 // GET https://api.thingspeak.com/update?api_key=0LM3KKFRE13A0NK9&field1=0
-const char resource = "update?api_key=0LM3KKFRE13A0NK9&raw=";
+const char resource = "/update?api_key=0LM3KKFRE13A0NK9&raw=";
 
 void setup() {
   // Set console baud rate
   SerialMon.begin(115200);
   delay(10);
 
-  DBG("Wait...");
+  DBG("Arduino configuration done...");
   delay(6000);
 
   // Set GSM module baud rate
@@ -80,12 +80,13 @@ void setup() {
 
   String modemInfo = modem.getModemInfo();
   DBG("Modem Info:", modemInfo);
-
+  /*
   DBG("Connecting to", server);
   if (!modem.gprsConnect(server)) {
     delay(10000);
-    return;
-  }
+    DBG("GPRS not found!");
+  } 
+  */
 
   DBG("Enabling GPS/GNSS/GLONASS and waiting 15s for warm-up");
   modem.enableGPS();
