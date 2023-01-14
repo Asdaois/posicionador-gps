@@ -45,10 +45,10 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 /*
  * Tests enabled
  */
-#define TINY_GSM_TEST_GPRS true
+#define TINY_GSM_TEST_GPRS false
 #define TINY_GSM_TEST_WIFI false
-#define TINY_GSM_TEST_TCP true
-#define TINY_GSM_TEST_SSL true
+#define TINY_GSM_TEST_TCP false
+#define TINY_GSM_TEST_SSL false
 #define TINY_GSM_TEST_CALL false
 #define TINY_GSM_TEST_SMS false
 #define TINY_GSM_TEST_USSD false
@@ -69,10 +69,10 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // #define CALL_TARGET "+380xxxxxxxxx"
 
 // Your GPRS credentials, if any
-const char apn[] = "YourAPN";
+const char apn[] = "internet.movistar.ve";
 // const char apn[] = "ibasis.iot";
-const char gprsUser[] = "";
-const char gprsPass[] = "";
+const char gprsUser[] = "movistarve";
+const char gprsPass[] = "movistarve";
 
 // Your WiFi connection credentials, if applicable
 const char wifiSSID[] = "YourSSID";
@@ -88,7 +88,7 @@ const char resource[] = "/update?api_key=0LM3KKFRE13A0NK9&raw=";
 #undef TINY_GSM_TEST_GPRS
 #undef TINY_GSM_TEST_WIFI
 #define TINY_GSM_TEST_GPRS false
-#define TINY_GSM_TEST_WIFI true
+#define TINY_GSM_TEST_WIFI false
 #endif
 #if TINY_GSM_TEST_WIFI && not defined TINY_GSM_MODEM_HAS_WIFI
 #undef TINY_GSM_USE_GPRS
@@ -115,7 +115,7 @@ void setup() {
   // !!!!!!!!!!!
 
   DBG("Wait...");
-s  delay(6000);
+  delay(6000);
 
   // Set GSM module baud rate
   TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
@@ -126,12 +126,10 @@ void loop() {
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
   DBG("Initializing modem...");
-  if (!modem.restart()) {
-    // if (!modem.init()) {
+  if (!modem.init()) {
     DBG("Failed to restart modem, delaying 10s and retrying");
     // restart autobaud in case GSM just rebooted
     // TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
-    return;
   }
 
   String name = modem.getModemName();
