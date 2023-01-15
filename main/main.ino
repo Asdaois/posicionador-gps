@@ -36,7 +36,7 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
 // communication, set a fixed baud rate using modem.setBaud(#).
 #define GSM_AUTOBAUD_MIN 9600
-#define GSM_AUTOBAUD_MAX 115200
+#define GSM_AUTOBAUD_MAX 9600
 
 // Add a reception delay, if needed.
 // This may be needed for a fast processor at a slow baud rate.
@@ -120,6 +120,13 @@ void setup() {
   // Set GSM module baud rate
   TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
   // SerialAT.begin(9600);
+  // Restart takes quite some time
+  // To skip it, call init() instead of restart()
+  DBG("Initializing modem...");
+  modem.restart();
+
+  String name = modem.getModemName();
+  DBG("Modem Name:", name);
 }
 
 void loop() {
