@@ -132,32 +132,32 @@ void setup() {
 void loop() {
 
 #if TINY_GSM_TEST_GPS && defined TINY_GSM_MODEM_HAS_GPS
-  DBG("Enabling GPS/GNSS/GLONASS and waiting 15s for warm-up");
+  DBG("Enabling GPS/GNSS/GLONASS and waiting 1s for warm-up");
   modem.enableGPS();
-  delay(15000L);
-  float lat2      = 0;
-  float lon2      = 0;
-  float speed2    = 0;
-  float alt2      = 0;
-  int   vsat2     = 0;
-  int   usat2     = 0;
-  float accuracy2 = 0;
-  int   year2     = 0;
-  int   month2    = 0;
-  int   day2      = 0;
-  int   hour2     = 0;
-  int   min2      = 0;
-  int   sec2      = 0;
+  delay(1000L);
+  float lat      = 0;
+  float lon      = 0;
+  float speed    = 0;
+  float alt      = 0;
+  int   vsat     = 0;
+  int   usat     = 0;
+  float accuracy = 0;
+  int   year     = 0;
+  int   month    = 0;
+  int   day      = 0;
+  int   hour     = 0;
+  int   min      = 0;
+  int   sec      = 0;
   for (int8_t i = 15; i; i--) {
     DBG("Requesting current GPS/GNSS/GLONASS location");
-    if (modem.getGPS(&lat2, &lon2, &speed2, &alt2, &vsat2, &usat2, &accuracy2,
-                     &year2, &month2, &day2, &hour2, &min2, &sec2)) {
-      DBG("Latitude:", String(lat2, 8), "\tLongitude:", String(lon2, 8));
-      DBG("Speed:", speed2, "\tAltitude:", alt2);
-      DBG("Visible Satellites:", vsat2, "\tUsed Satellites:", usat2);
-      DBG("Accuracy:", accuracy2);
-      DBG("Year:", year2, "\tMonth:", month2, "\tDay:", day2);
-      DBG("Hour:", hour2, "\tMinute:", min2, "\tSecond:", sec2);
+    if (modem.getGPS(&lat, &lon, &speed, &alt, &vsat, &usat, &accuracy,
+                     &year, &month, &day, &hour, &min, &sec)) {
+      DBG("Latitude:", String(lat, 8), "\tLongitude:", String(lon, 8));
+      DBG("Speed:", speed, "\tAltitude:", alt);
+      DBG("Visible Satellites:", vsat, "\tUsed Satellites:", usat);
+      DBG("Accuracy:", accuracy);
+      DBG("Year:", year, "\tMonth:", month, "\tDay:", day);
+      DBG("Hour:", hour, "\tMinute:", min, "\tSecond:", sec);
       break;
     } else {
       DBG("Couldn't get GPS/GNSS/GLONASS location, retrying in 15s.");
@@ -170,24 +170,4 @@ void loop() {
   DBG("Disabling GPS");
   modem.disableGPS();
 #endif
-
-
-#if TINY_GSM_POWERDOWN
-
-
-#if TINY_GSM_TEST_WIFI
-  modem.networkDisconnect();
-  DBG("WiFi disconnected");
-#endif
-
-  // Try to power-off (modem may decide to restart automatically)
-  // To turn off modem completely, please use Reset/Enable pins
-  modem.poweroff();
-  DBG("Poweroff.");
-#endif
-
-  DBG("End of tests.");
-
-  // Do nothing forevermore
-  while (true) { modem.maintain(); }
 }
