@@ -45,10 +45,10 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 /*
  * Tests enabled
  */
-#define TINY_GSM_TEST_GPRS false
+#define TINY_GSM_TEST_GPRS true
 #define TINY_GSM_TEST_WIFI false
-#define TINY_GSM_TEST_TCP false
-#define TINY_GSM_TEST_SSL false
+#define TINY_GSM_TEST_TCP true
+#define TINY_GSM_TEST_SSL true
 #define TINY_GSM_TEST_CALL false
 #define TINY_GSM_TEST_SMS false
 #define TINY_GSM_TEST_USSD false
@@ -80,7 +80,7 @@ const char wifiPass[] = "YourWiFiPass";
 
 // Server details to test TCP/SSL
 const char server[]   = "api.thingspeak.com";
-const char resource[] = "/update?api_key=0LM3KKFRE13A0NK9&raw=";
+const char resource[] = "/update??api_key=0LM3KKFRE13A0NK9&field1=";
 
 #include <TinyGsmClient.h>
 
@@ -158,16 +158,59 @@ void loop() {
       DBG("Accuracy:", accuracy);
       DBG("Year:", year, "\tMonth:", month, "\tDay:", day);
       DBG("Hour:", hour, "\tMinute:", min, "\tSecond:", sec);
+      String gps_raw = modem.getGPSraw();
+      DBG("GPS/GNSS Based Location String:", gps_raw);
       break;
     } else {
       DBG("Couldn't get GPS/GNSS/GLONASS location, retrying in 15s.");
       delay(15000L);
     }
   }
-  DBG("Retrieving GPS/GNSS/GLONASS location again as a string");
-  String gps_raw = modem.getGPSraw();
-  DBG("GPS/GNSS Based Location String:", gps_raw);
-  DBG("Disabling GPS");
-  modem.disableGPS();
-#endif
+
+#endif  
+DBG("Connecting to", apn);
+  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+    delay(10000);
+    DBG("No se pudo conectar a la red movistar");
+  }
+
+  bool res = modem.isGprsConnected();
+  DBG("GPRS status:", res ? "connected" : "not connected");
+
+  String ccid = modem.getSimCCID();
+  DBG("CCID:", ccid);
+
+  String imei = modem.getIMEI();
+  DBG("IMEI:", imei);
+
+  String imsi = modem.getIMSI();
+  DBG("IMSI:", imsi);
+
+  String cop = modem.getOperator();
+  DBG("Operator:", cop);
+
+  IPAddress local = modem.localIP();
+  DBG("Local IP:", local);
+
+  int csq = modem.getSignalQuality();
+  DBG("Signal quality:", csq);
+
+  TinyGsmClient client(modem, 0);
+  const int     port = 80;
+  DBG("Connecting to", server);
+  if (!client.connect(server, port)) {
+    DBG("... failed");
+  } else {
+    // Make a HTTP GET request:
+    client.print(String("GET ") + resource + modem.getGPSraw() + " HTTP/1.0\r\n");
+    client.print(String("Host: ") + server + "\r\n");
+    client.print("Connection: close\r\n\r\n");
+
+    // Wait for data to arrive
+    uint32_t start = millis();
+    while (client.connected() && !client.available() &&
+           millis() - start < 30000L) {
+      delay(100);
+    };
+  }
 }
