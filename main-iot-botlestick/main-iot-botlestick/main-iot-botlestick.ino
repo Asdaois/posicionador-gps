@@ -31,23 +31,12 @@
 
 #include "BotleticsSIM7000.h" // https://github.com/botletics/Botletics-SIM7000/tree/main/src
 
-// You don't need the following includes if you're not using MQTT
-// You can find the Adafruit MQTT library here: https://github.com/adafruit/Adafruit_MQTT_Library
-#include "Adafruit_MQTT.h"
-#include "Adafruit_MQTT_FONA.h"
-
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
   // Required for Serial on Zero based boards
   #define Serial SERIAL_PORT_USBVIRTUAL
 #endif
 
-// Define *one* of the following lines:
-//#define SIMCOM_2G // SIM800/808/900/908, etc.
-//#define SIMCOM_3G // SIM5320
 #define SIMCOM_7000
-//#define SIMCOM_7070
-//#define SIMCOM_7500
-//#define SIMCOM_7600
 
 // Uncomment *one* of the following protocols you want to use
 // to send data to the cloud! Leave the other commented out
@@ -62,20 +51,9 @@
 #define RST 7
 //#define DTR 8 // Connect with solder jumper
 //#define RI 9 // Need to enable via AT commands
-#define TX 10 // Microcontroller RX
-#define RX 11 // Microcontroller TX
+#define TX 2 // Microcontroller RX
+#define RX 3 // Microcontroller TX
 //#define T_ALERT 12 // Connect with solder jumper
-
-// For botletics SIM7500 shield
-//#define BOTLETICS_PWRKEY 6
-//#define RST 7
-////#define DTR 9 // Connect with solder jumper
-////#define RI 8 // Need to enable via AT commands
-//#define TX 11 // Microcontroller RX
-//#define RX 10 // Microcontroller TX
-////#define T_ALERT 5 // Connect with solder jumper
-
-#define LED 13 // Just for testing if needed!
 
 // We default to using software serial. If you want to use hardware serial
 // (because softserial isnt supported) comment out the following three lines 
@@ -87,13 +65,6 @@ SoftwareSerial modemSS = SoftwareSerial(TX, RX);
 //SoftwareSerial modemSS = SoftwareSerial(TX, RX, false, 256); // TX, RX, inverted logic, buffer size
 
 SoftwareSerial *modemSerial = &modemSS;
-
-// Hardware serial is also possible!
-//HardwareSerial *modemSerial = &Serial1;
-
-// For ESP32 hardware serial use these lines instead
-//#include <HardwareSerial.h>
-//HardwareSerial modemSS(1);
 
 // Use this for 2G modules
 #ifdef SIMCOM_2G
@@ -109,45 +80,6 @@ SoftwareSerial *modemSerial = &modemSS;
 Botletics_modem_LTE modem = Botletics_modem_LTE();
 #endif
 
-#ifdef PROTOCOL_MQTT_AIO
-  /************************* MQTT SETUP *********************************/
-  // MQTT setup (if you're using it, that is)
-  // For Adafruit IO:
-  #define AIO_SERVER      "io.adafruit.com"
-  #define AIO_SERVERPORT  1883
-  #define AIO_USERNAME    "YOUR_AIO_USERNAME"
-  #define AIO_KEY         "YOUR_AIO_KEY"
-
-  // Setup the MQTT class by passing in the FONA class and MQTT server and login details.
-  Adafruit_MQTT_FONA mqtt(&modem, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
-  
-  // How many transmission failures in a row we're OK with before reset
-  uint8_t txfailures = 0;  
-  
-  /****************************** MQTT FEEDS ***************************************/
-  // Setup feeds for publishing.
-  // Notice MQTT paths for Adafruit IO follow the form: <username>/feeds/<feedname>
-  // Also notice that the combined lat/long "location" feed requires "/csv" in the name
-  // The Adafruit IO map requires this format: sensor_val, lat, long, altitude
-  Adafruit_MQTT_Publish feed_location = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/location/csv"); // Group GPS data for AIO map in dashboard
-  Adafruit_MQTT_Publish feed_speed = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/speed");
-  Adafruit_MQTT_Publish feed_head = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/heading");
-  Adafruit_MQTT_Publish feed_alt = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/altitude");
-  Adafruit_MQTT_Publish feed_temp = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/temperature");
-  Adafruit_MQTT_Publish feed_voltage = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/voltage");
-  
-  // Setup a feed called 'command' for subscribing to changes.
-  Adafruit_MQTT_Subscribe feed_command = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/command");
-
-#elif defined(PROTOCOL_MQTT_CLOUDMQTT)
-  /************************* MQTT SETUP *********************************/
-  // For CloudMQTT find these under the "Details" tab:
-  #define MQTT_SERVER      "m10.cloudmqtt.com"
-  #define MQTT_SERVERPORT  16644
-  #define MQTT_USERNAME    "CLOUD_MQTT_USERNAME"
-  #define MQTT_KEY         "CLOUD_MQTT_KEY"
-#endif
-
 /****************************** OTHER STUFF ***************************************/
 // For sleeping the AVR
 #include <avr/sleep.h>
@@ -155,10 +87,6 @@ Botletics_modem_LTE modem = Botletics_modem_LTE();
 
 // For temperature sensor
 #include <Wire.h>
-#include "Adafruit_MCP9808.h"
-
-// Create the MCP9808 temperature sensor object
-Adafruit_MCP9808 tempsensor = Adafruit_MCP9808();
 
 // The following line is used for applications that require repeated data posting, like GPS trackers
 // Comment it out if you only want it to post once, not repeatedly every so often
@@ -200,12 +128,7 @@ void setup() {
   modem.powerOn(BOTLETICS_PWRKEY); // Power on the module
   moduleSetup(); // Establishes first-time serial comm and prints IMEI
 
-  if (!tempsensor.begin()) {
-    Serial.println("Couldn't find the MCP9808!");
-    tempsensor.wake(); // Wake up the MCP9808 if it was sleeping and retry
-    if (!tempsensor.begin()) while (1);
-  }
- 
+
   // Unlock SIM card if needed
   // Remember to uncomment the "PIN" variable definition above
   /*
@@ -222,32 +145,7 @@ void setup() {
   // network.  Contact your provider for the exact APN, username,
   // and password values.  Username and password are optional and
   // can be removed, but APN is required.
-  //modem.setNetworkSettings(F("your APN"), F("your username"), F("your password"));
-  //modem.setNetworkSettings(F("m2m.com.attz")); // For AT&T IoT SIM card
-  //modem.setNetworkSettings(F("telstra.internet")); // For Telstra (Australia) SIM card - CAT-M1 (Band 28)
-  modem.setNetworkSettings(F("hologram")); // For Hologram SIM card
-
-  // Optionally configure HTTP gets to follow redirects over SSL.
-  // Default is not to follow SSL redirects, however if you uncomment
-  // the following line then redirects over SSL will be followed.
-  //modem.setHTTPSRedirect(true);
-
-  /*
-  // Other examples of some things you can set:
-  modem.setPreferredMode(38); // Use LTE only, not 2G
-  modem.setPreferredLTEMode(1); // Use LTE CAT-M only, not NB-IoT
-  modem.setOperatingBand("CAT-M", 12); // AT&T uses band 12
-//  modem.setOperatingBand("CAT-M", 13); // Verizon uses band 13
-  modem.enableRTC(true);
-  
-  modem.enableSleepMode(true);
-  modem.set_eDRX(1, 4, "0010");
-  modem.enablePSM(true);
-
-  // Set the network status LED blinking pattern while connected to a network (see AT+SLEDS command)
-  modem.setNetLED(true, 2, 64, 3000); // on/off, mode, timer_on, timer_off
-  modem.setNetLED(false); // Disable network status LED
-  */
+  modem.setNetworkSettings(F("internet.movistar.ve"), F("movistarve"), F("movistarve"));
 
   // Perform first-time GPS/GPRS setup if the shield is going to remain on,
   // otherwise these won't be enabled in loop() and it won't work!
@@ -271,10 +169,6 @@ void setup() {
     Serial.println(F("Enabled GPRS!"));
   #endif
 #endif
-
-#ifdef PROTOCOL_MQTT_AIO
-  mqtt.subscribe(&feed_command); // Only if you're using MQTT
-#endif
 }
 
 void loop() {
@@ -294,18 +188,6 @@ void loop() {
   // only for testing.
   battLevel = readVcc(); // Get voltage in mV
 
-  // Measure temperature
-  tempsensor.wake(); // Wake up the MCP9808 if it was sleeping
-  float tempC = tempsensor.readTempC();
-  float tempF = tempC * 9.0 / 5.0 + 32;
-  Serial.print("Temp: "); Serial.print(tempC); Serial.print("*C\t"); 
-  Serial.print(tempF); Serial.println("*F");
-  
-  Serial.println("Shutting down the MCP9808...");
-  tempsensor.shutdown(); // In this mode the MCP9808 draws only about 0.1uA
-
-  float temperature = tempC; // Select what unit you want to use for this example
-
   delay(500); // I found that this helps
 
   // Turn on GPS if it wasn't on already (e.g., if the module wasn't turned off)
@@ -324,22 +206,12 @@ void loop() {
     Serial.println(F("Failed to get GPS location, retrying..."));
     delay(2000); // Retry every 2s
   }
-  Serial.println(F("Found 'eeeeem!"));
   Serial.println(F("---------------------"));
   Serial.print(F("Latitude: ")); Serial.println(latitude, 6);
   Serial.print(F("Longitude: ")); Serial.println(longitude, 6);
   Serial.print(F("Speed: ")); Serial.println(speed_kph);
   Serial.print(F("Heading: ")); Serial.println(heading);
   Serial.print(F("Altitude: ")); Serial.println(altitude);
-  /*
-  // Uncomment this if you care about parsing UTC time
-  Serial.print(F("Year: ")); Serial.println(year);
-  Serial.print(F("Month: ")); Serial.println(month);
-  Serial.print(F("Day: ")); Serial.println(day);
-  Serial.print(F("Hour: ")); Serial.println(hour);
-  Serial.print(F("Minute: ")); Serial.println(minute);
-  Serial.print(F("Second: ")); Serial.println(second);
-  */
   Serial.println(F("---------------------"));
   
   // If the shield was already on, no need to re-enable
@@ -364,7 +236,6 @@ void loop() {
   dtostrf(speed_kph, 1, 0, speedBuff);
   dtostrf(heading, 1, 0, headBuff);
   dtostrf(altitude, 1, 1, altBuff);
-  dtostrf(temperature, 1, 2, tempBuff); // float_val, min_width, digits_after_decimal, char_buffer
   dtostrf(battLevel, 1, 0, battBuff);
 
   // Also construct a combined, comma-separated location array
@@ -374,199 +245,28 @@ void loop() {
   // Construct the appropriate URL's and body, depending on request type
   // In this example we use the IMEI as device ID
 
-#ifdef PROTOCOL_HTTP_GET
-  // GET request
   
   counter = 0; // This counts the number of failed attempts tries
   
-  #if defined(SIMCOM_3G) || defined(SIMCOM_7500) || defined(SIMCOM_7600)
-    // You can adjust the contents of the request if you don't need certain things like speed, altitude, etc.
-    sprintf(URL, "GET /dweet/for/%s?lat=%s&long=%s&speed=%s&head=%s&alt=%s&temp=%s&batt=%s HTTP/1.1\r\nHost: dweet.io\r\n\r\n",
-            imei, latBuff, longBuff, speedBuff, headBuff, altBuff, tempBuff, battBuff);
-            
-    // Try a total of three times if the post was unsuccessful (try additional 2 times)
-    while (counter < 3 && !modem.postData("www.dweet.io", 443, "HTTPS", URL)) { // Server, port, connection type, URL
-      Serial.println(F("Failed to complete HTTP/HTTPS request..."));
-      counter++; // Increment counter
-      delay(1000);
-    }
-  #else
-    sprintf(URL, "http://dweet.io/dweet/for/%s?lat=%s&long=%s&speed=%s&head=%s&alt=%s&temp=%s&batt=%s", imei, latBuff, longBuff,
-            speedBuff, headBuff, altBuff, tempBuff, battBuff);
+  // You can adjust the contents of the request if you don't need certain things like speed, altitude, etc.
+  sprintf(URL, "GET /update?api_key=0LM3KKFRE13A0NK9&field1=%s&field2=%s&field3=%s&field4=%s&field5=%s HTTP/1.1\r\nHost: api.thingspeak.com\r\n\r\n",
+          latBuff, longBuff, speedBuff, headBuff, altBuff);
           
-    while (counter < 3 && !modem.postData("GET", URL)) {
-      Serial.println(F("Failed to post data, retrying..."));
-      counter++; // Increment counter
-      delay(1000);
-    }
-  #endif
-  
-#elif defined(PROTOCOL_HTTP_POST)  
-  // You can also do a POST request instead
-
-  counter = 0; // This counts the number of failed attempts tries
-  
-  #if defined(SIMCOM_3G) || defined(SIMCOM_7500) || defined(SIMCOM_7600)
-    sprintf(body, "{\"lat\":%s,\"long\":%s}\r\n", latBuff, longBuff); // Terminate with CR+NL
-    sprintf(URL, "POST /dweet/for/%s HTTP/1.1\r\nHost: dweet.io\r\nContent-Length: %i\r\n\r\n", imei, strlen(body));
-
-    while (counter < 3 && !modem.postData("www.dweet.io", 443, "HTTPS", URL, body)) { // Server, port, connection type, URL
-      Serial.println(F("Failed to complete HTTP/HTTPS request..."));
-      counter++; // Increment counter
-      delay(1000);
-    }
-  #else
-    sprintf(URL, "http://dweet.io/dweet/for/%s", imei);
-    sprintf(body, "{\"lat\":%s,\"long\":%s}", latBuff, longBuff);
-
-    // Let's try a POST request to thingsboard.io
-    // Please note this can me memory-intensive for the Arduino Uno
-    // and may not work. You might have to split it up into a couple requests
-    // and send part of the data in one request, and the rest in the other, etc.
-    // Perhaps an easier solution is to swap out the Uno with an Arduino Mega.
-    /*
-    const char * token = "qFeFpQIC9C69GDFLWdAv"; // From thingsboard.io device
-    sprintf(URL, "http://demo.thingsboard.io/api/v1/%s/telemetry", token);
-    sprintf(body, "{\"lat\":%s,\"long\":%s,\"speed\":%s,\"head\":%s,\"alt\":%s,\"temp\":%s,\"batt\":%s}", latBuff, longBuff,
-            speedBuff, headBuff, altBuff, tempBuff, battBuff);
-  //  sprintf(body, "{\"lat\":%s,\"long\":%s}", latBuff, longBuff); // If all you want is lat/long
-    */
-
-    while (counter < 3 && !modem.postData("POST", URL, body)) {
-      Serial.println(F("Failed to complete HTTP POST..."));
-      counter++;
-      delay(1000);
-    }
-  #endif
-
-#elif defined(PROTOCOL_MQTT_AIO)
-  // Let's use MQTT!
-  
-  // Ensure the connection to the MQTT server is alive (this will make the first
-  // connection and automatically reconnect when disconnected). See the MQTT_connect
-  // function definition further below.
-  MQTT_connect();
-
-  // Now publish all the data to different feeds!
-  // The MQTT_publish_checkSuccess handles repetitive stuff.
-  // You can see the function near the end of this sketch.
-  // For the Adafruit IO dashboard map we send the combined lat/long buffer
-  MQTT_publish_checkSuccess(feed_location, locBuff);
-//  MQTT_publish_checkSuccess(feed_speed, speedBuff); // Included in "location" feed
-  MQTT_publish_checkSuccess(feed_head, headBuff);
-//  MQTT_publish_checkSuccess(feed_alt, altBuff); // Included in "location" feed
-  MQTT_publish_checkSuccess(feed_temp, tempBuff);
-  MQTT_publish_checkSuccess(feed_voltage, battBuff);
- 
-  // This is our 'wait for incoming subscription packets' busy subloop
-  Adafruit_MQTT_Subscribe *subscription;
-  while ((subscription = mqtt.readSubscription(5000))) {
-    if (subscription == &feed_command) {
-      Serial.print(F("*** Got: "));
-      Serial.println((char *)feed_command.lastread);
-    }
-  }
-
-  // Control an LED based on what we receive from the command feed subscription!
-  if (strcmp(feed_command.lastread, "ON") == 0) {
-    Serial.println(F("*** Commanded to turn on LED!"));
-    digitalWrite(LED, HIGH);
-  }
-  else if (strcmp(feed_command.lastread, "OFF") == 0) {
-    Serial.println(F("*** Commanded to turn off LED!"));
-    digitalWrite(LED, LOW);
-  }
-#elif defined(PROTOCOL_MQTT_CLOUDMQTT)
-  // Let's use CloudMQTT! NOTE: connecting and publishing work, but everything else
-  // still under development!!!
-  char MQTT_CLIENT[16] = " ";  // We'll change this to the IMEI
-  
-  // Let's begin by changing the client name to the IMEI number to better identify
-  strcpy(MQTT_CLIENT, imei); // Copy the contents of the imei into the char array "MQTT_client"
-
-  // Connect to MQTT broker
-  if (!modem.TCPconnect(MQTT_SERVER, MQTT_SERVERPORT)) Serial.println(F("Failed to connect to TCP/IP!"));
-  // CloudMQTT requires "MQIsdp" instead of "MQTT"
-  if (!modem.MQTTconnect("MQIsdp", MQTT_CLIENT, MQTT_USERNAME, MQTT_KEY)) Serial.println(F("Failed to connect to MQTT broker!"));
-  
-  // Publish each data point under a different topic!
-  Serial.println(F("Publishing data to their respective topics!"));  
-//  if (!modem.MQTTpublish("latitude", latBuff)) Serial.println(F("Failed to publish data!")); // Can send individually if needed
-//  if (!modem.MQTTpublish("longitude", longBuff)) Serial.println(F("Failed to publish data!"));
-  if (!modem.MQTTpublish("location", locBuff)) Serial.println(F("Failed to publish data!")); // Combined data
-  if (!modem.MQTTpublish("speed", speedBuff)) Serial.println(F("Failed to publish data!"));
-  if (!modem.MQTTpublish("heading", headBuff)) Serial.println(F("Failed to publish data!"));
-  if (!modem.MQTTpublish("altitude", altBuff)) Serial.println(F("Failed to publish data!"));
-  if (!modem.MQTTpublish("temperature", tempBuff)) Serial.println(F("Failed to publish data!"));
-  if (!modem.MQTTpublish("voltage", battBuff)) Serial.println(F("Failed to publish data!"));
-  
-  // Subscribe to topic
-//  Serial.print(F("Subscribing to topic: ")); Serial.println(sub_topic);
-//  if (!modem.MQTTsubscribe(sub_topic, 0)) Serial.println(F("Failed to subscribe!"));
-
-  // Unsubscribe to topic
-//  Serial.print(F("Unsubscribing from topic: ")); Serial.println(sub_topic);
-//  if (!modem.MQTTunsubscribe(sub_topic)) Serial.println(F("Failed to receive data!")); // Topic, quality of service (QoS)
-
-  // Receive data
-//  if (!modem.MQTTreceive(MQTT_topic)) Serial.println(F("Failed to unsubscribe!"));
-  
-  // Disconnect from MQTT broker
-//  if (!modem.MQTTdisconnect()) Serial.println(F("Failed to close connection!"));
-
-  // Close TCP connection
-  if (!modem.TCPclose()) Serial.println(F("Failed to close connection!"));
-
-#endif
-
-  //Only run the code below if you want to turn off the shield after posting data
-#ifdef turnOffShield
-  // Disable GPRS
-  // Note that you might not want to check if this was successful, but just run it
-  // since the next command is to turn off the module anyway
-  if (!modem.enableGPRS(false)) Serial.println(F("Failed to disable GPRS!"));
-
-  // Turn off GPS
-  if (!modem.enableGPS(false)) Serial.println(F("Failed to turn off GPS!"));
-  
-  // Power off the module. Note that you could instead put it in minimum functionality mode
-  // instead of completely turning it off. Experiment different ways depending on your application!
-  // You should see the "PWR" LED turn off after this command
-//  if (!modem.powerDown()) Serial.println(F("Failed to power down modem!")); // No retries
-  counter = 0;
-  while (counter < 3 && !modem.powerDown()) { // Try shutting down 
-    Serial.println(F("Failed to power down modem!"));
+  // Try a total of three times if the post was unsuccessful (try additional 2 times)
+  while (counter < 3 && !modem.postData("api.thingspeak.com", 443, "HTTPS", URL)) { // Server, port, connection type, URL
+    Serial.println(F("Failed to complete HTTP/HTTPS request..."));
     counter++; // Increment counter
     delay(1000);
   }
-#endif
-  
-  // Alternative to the AT command method above:
-  // If your modem has a PWRKEY pin connected to your MCU, you can pulse PWRKEY
-  // LOW for a little bit, then pull it back HIGH, like this:
-//  digitalWrite(PWRKEY, LOW);
-//  delay(600); // Minimum of 64ms to turn on and 500ms to turn off for modem 3G. Check spec sheet for other types
-//  delay(1300); // Minimum of 1.2s for SIM7000
-//  digitalWrite(PWRKEY, HIGH);
-  
-  // Shut down the MCU to save power
-#ifndef samplingRate
-  Serial.println(F("Shutting down..."));
-  delay(5); // This is just to read the response of the last AT command before shutting down
-  MCU_powerDown(); // You could also write your own function to make it sleep for a certain duration instead
-#else
-  // The following lines are for if you want to periodically post data (like GPS tracker)
-  Serial.print(F("Waiting for ")); Serial.print(samplingRate); Serial.println(F(" seconds\r\n"));
-  delay(samplingRate * 1000UL); // Delay
 
-  // Only run the initialization again if the module was powered off
-  // since it resets back to 115200 baud instead of 4800.
-  #ifdef turnOffShield
-    modem.powerOn(BOTLETICS_PWRKEY); // Powers on the module if it was off previously
-    moduleSetup();
-  #endif
-    
-#endif
+  sprintf(URL, "http://api.thingspeak.com/update?api_key=0LM3KKFRE13A0NK9&field1=%s&field2=%s&field3=%s&field4=%s&field5=%s", 
+          latBuff, longBuff, speedBuff, headBuff, altBuff);
+        
+  while (counter < 3 && !modem.postData("GET", URL)) {
+    Serial.println(F("Failed to post data, retrying..."));
+    counter++; // Increment counter
+    delay(1000);
+  }
 }
 
 void moduleSetup() {
@@ -585,33 +285,6 @@ void moduleSetup() {
     Serial.println(F("Couldn't find modem"));
     while (1); // Don't proceed if it couldn't find the device
   }
-
-  // Hardware serial:
-  /*
-  modemSerial->begin(115200); // Default SIM7000 baud rate
-
-  if (! modem.begin(*modemSerial)) {
-    DEBUG_PRINTLN(F("Couldn't find SIM7000"));
-  }
-  */
-  
-  // The commented block of code below is an alternative that will find the module at 115200
-  // Then switch it to 9600 without having to wait for the module to turn on and manually
-  // press the reset button in order to establish communication. However, once the baud is set
-  // this method will be much slower.
-  /*
-  modemSerial->begin(115200); // Default LTE shield baud rate
-  modem.begin(*modemSerial); // Don't use if statement because an OK reply could be sent incorrectly at 115200 baud
-
-  Serial.println(F("Configuring to 9600 baud"));
-  modem.setBaudrate(9600); // Set to 9600 baud
-  modemSerial->begin(9600);
-  if (!modem.begin(*modemSerial)) {
-    Serial.println(F("Couldn't find modem"));
-    while(1); // Don't proceed if it couldn't find the device
-  }
-  */
-
   type = modem.type();
   Serial.println(F("Modem is OK"));
   Serial.print(F("Found "));
@@ -673,49 +346,4 @@ bool netStatus() {
 
   if (!(n == 1 || n == 5)) return false;
   else return true;
-}
-
-// Function to connect and reconnect as necessary to the MQTT server.
-// Should be called in the loop function and it will take care if connecting.
-#ifdef PROTOCOL_MQTT_AIO
-  void MQTT_connect() {
-    int8_t ret;
-  
-    // Stop if already connected.
-    if (mqtt.connected()) {
-      return;
-    }
-  
-    Serial.println("Connecting to MQTT... ");
-  
-    while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
-      Serial.println(mqtt.connectErrorString(ret));
-      Serial.println("Retrying MQTT connection in 5 seconds...");
-      mqtt.disconnect();
-      delay(5000);  // wait 5 seconds
-    }
-    Serial.println("MQTT Connected!");
-  }
-
-  void MQTT_publish_checkSuccess(Adafruit_MQTT_Publish &feed, const char *feedContent) {
-    Serial.println(F("Sending data..."));
-    if (! feed.publish(feedContent)) {
-      Serial.println(F("Failed"));
-      txfailures++;
-    }
-    else {
-      Serial.println(F("OK!"));
-      txfailures = 0;
-    }
-  }
-#endif
-
-// Turn off the MCU completely. Can only wake up from RESET button
-// However, this can be altered to wake up via a pin change interrupt
-void MCU_powerDown() {
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  ADCSRA = 0; // Turn off ADC
-  power_all_disable ();  // Power off ADC, Timer 0 and 1, serial interface
-  sleep_enable();
-  sleep_cpu();
 }
