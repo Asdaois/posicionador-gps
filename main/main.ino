@@ -42,25 +42,6 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // This may be needed for a fast processor at a slow baud rate.
 // #define TINY_GSM_YIELD() { delay(2); }
 
-/*
- * Tests enabled
- */
-#define TINY_GSM_TEST_GPRS true
-#define TINY_GSM_TEST_WIFI false
-#define TINY_GSM_TEST_TCP true
-#define TINY_GSM_TEST_SSL true
-#define TINY_GSM_TEST_CALL false
-#define TINY_GSM_TEST_SMS false
-#define TINY_GSM_TEST_USSD false
-#define TINY_GSM_TEST_BATTERY false
-#define TINY_GSM_TEST_TEMPERATURE false
-#define TINY_GSM_TEST_GSM_LOCATION false
-#define TINY_GSM_TEST_NTP false
-#define TINY_GSM_TEST_TIME false
-#define TINY_GSM_TEST_GPS true
-// disconnect and power down modem after tests
-#define TINY_GSM_POWERDOWN false
-
 // set GSM PIN, if any
 #define GSM_PIN ""
 
@@ -83,19 +64,6 @@ const char server[]   = "api.thingspeak.com";
 const char resource[] = "/update??api_key=0LM3KKFRE13A0NK9&field1=";
 
 #include <TinyGsmClient.h>
-
-#if TINY_GSM_TEST_GPRS && not defined TINY_GSM_MODEM_HAS_GPRS
-#undef TINY_GSM_TEST_GPRS
-#undef TINY_GSM_TEST_WIFI
-#define TINY_GSM_TEST_GPRS false
-#define TINY_GSM_TEST_WIFI false
-#endif
-#if TINY_GSM_TEST_WIFI && not defined TINY_GSM_MODEM_HAS_WIFI
-#undef TINY_GSM_USE_GPRS
-#undef TINY_GSM_USE_WIFI
-#define TINY_GSM_USE_GPRS true
-#define TINY_GSM_USE_WIFI false
-#endif
 
 #ifdef DUMP_AT_COMMANDS
 #include <StreamDebugger.h>
@@ -130,11 +98,9 @@ void setup() {
 }
 
 void loop() {
-
-#if TINY_GSM_TEST_GPS && defined TINY_GSM_MODEM_HAS_GPS
   DBG("Enabling GPS/GNSS/GLONASS and waiting 1s for warm-up");
   modem.enableGPS();
-  delay(1000L);
+  
   float lat      = 0;
   float lon      = 0;
   float speed    = 0;
@@ -167,8 +133,7 @@ void loop() {
     }
   }
 
-#endif  
-DBG("Connecting to", apn);
+  DBG("Connecting to", apn);
   if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
     delay(10000);
     DBG("No se pudo conectar a la red movistar");
