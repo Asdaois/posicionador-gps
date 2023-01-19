@@ -128,15 +128,6 @@ void setup() {
   modem.powerOn(BOTLETICS_PWRKEY); // Power on the module
   moduleSetup(); // Establishes first-time serial comm and prints IMEI
 
-
-  // Unlock SIM card if needed
-  // Remember to uncomment the "PIN" variable definition above
-  /*
-  if (!modem.unlockSIM(PIN)) {
-    Serial.println(F("Failed to unlock SIM card"));
-  }
-  */
-
   // Set modem to full functionality
   modem.setFunctionality(1); // AT+CFUN=1
 
@@ -145,7 +136,7 @@ void setup() {
   // network.  Contact your provider for the exact APN, username,
   // and password values.  Username and password are optional and
   // can be removed, but APN is required.
-  modem.setNetworkSettings(F("internet.movistar.ve"), F("movistarve"), F("movistarve"));
+  modem.setNetworkSettings(F("internet.digitel.ve"));
 
   // Perform first-time GPS/GPRS setup if the shield is going to remain on,
   // otherwise these won't be enabled in loop() and it won't work!

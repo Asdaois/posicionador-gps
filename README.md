@@ -11,9 +11,10 @@ const char resource[] = "/update??api_key=0LM3KKFRE13A0NK9&field1=";
 
 ## Conexion a la red
 
-Apn Movistar
-```cpp 
-const char apn[] = "internet.movistar.ve";
-const char gprsUser[] = "movistarve";
-const char gprsPass[] = "movistarve";
+```
+apn = internet.movistar.ve;
+user and password = movistarve;
+```
+```Apn digitel
+apn = internet.digitel.ve
 ```
