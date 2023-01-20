@@ -41,10 +41,8 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // #define CALL_TARGET "+380xxxxxxxxx"
 
 // Your GPRS credentials, if any
-const char apn[] = "internet.movistar.ve";
-// const char apn[] = "ibasis.iot";
-const char gprsUser[] = "movistarve";
-const char gprsPass[] = "movistarve";
+const char apn[] = "gprsweb.digitel.ve";
+
 
 // Your WiFi connection credentials, if applicable
 const char wifiSSID[] = "YourSSID";
@@ -90,6 +88,15 @@ void setup() {
 
   String name = modem.getModemName();
   DBG("Modem Name:", name);
+
+  SerialAT.write("AT+CMEE=1");
+  SerialAT.write("AT+CSQ");
+  SerialAT.write("AT+CREG?");
+  SerialAT.write("AT+CGATT=1");
+  SerialAT.write("AT+CPIN?");
+  SerialAT.write("AT+CREG?");
+  SerialAT.write("AT+CEER");
+  SerialAT.write("AT+CSQ");
 }
 
 void loop() {
@@ -129,7 +136,7 @@ void loop() {
   }
 
   DBG("Connecting to", apn);
-  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+  if (!modem.gprsConnect(apn)) {
     delay(10000);
     DBG("No se pudo conectar a la red movistar");
   }

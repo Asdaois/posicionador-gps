@@ -16,5 +16,8 @@ apn = internet.movistar.ve;
 user and password = movistarve;
 ```
 ```Apn digitel
-apn = internet.digitel.ve
+internet.digitel.ve
+gprs.digitel.ve
+gprsweb.digitel.ve
+AT+CSTT="gprsweb.digitel.ve"
 ```
