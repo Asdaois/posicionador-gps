@@ -61,7 +61,6 @@ const char wifiPass[] = "YourWiFiPass";
 
 // Server details to test TCP/SSL
 const char server[]   = "api.thingspeak.com";
-const char resource[] = "/update??api_key=0LM3KKFRE13A0NK9&field1=";
 
 #include <TinyGsmClient.h>
 
@@ -72,6 +71,11 @@ TinyGsm        modem(debugger);
 #else
 TinyGsm        modem(SerialAT);
 #endif
+
+String crearRecurso(String latitud, String longitud) {
+  DBG("lat:" + latitud + ", lon:" + longitud);
+  return "/update??api_key=0LM3KKFRE13A0NK9&field1=" + latitud + "&field2=" + longitud;
+}
 
 void setup() {
   // Set console baud rate
@@ -167,7 +171,7 @@ void loop() {
     DBG("... failed");
   } else {
     // Make a HTTP GET request:
-    client.print(String("GET ") + resource + modem.getGPSraw() + " HTTP/1.0\r\n");
+    client.print(String("GET ") + crearRecurso(String(lat), String(lon)) + " HTTP/1.0\r\n");
     client.print(String("Host: ") + server + "\r\n");
     client.print("Connection: close\r\n\r\n");
 
