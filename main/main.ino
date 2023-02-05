@@ -1,16 +1,7 @@
-/**************************************************************
- *
- * TinyGSM Getting Started guide:
- *   https://tiny.cc/tinygsm-readme
- *
- * NOTE:
- * Some of the functions may be unavailable for your modem.
- * Just comment them out.
- *
- **************************************************************/
+#define TINY_GSM_MODEM_SIM7000
+#include <TinyGsmClient.h>
 
 // Select your modem:
-#define TINY_GSM_MODEM_SIM7000
 
 // Set serial for debug console (to the Serial Monitor, default speed 115200)
 #define SerialMon Serial
