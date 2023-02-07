@@ -1,16 +1,32 @@
-const URL = () =>
+const ObtenerDatosURL = () =>
   "https://api.thingspeak.com/channels/2004262/feeds.json?api_key=A9GEUJVRWAWOVQRJ&results=20&timezone=America/Caracas";
+
+const subirDatosURL = (latitud, longitud) =>
+  `https://api.thingspeak.com/update?api_key=0LM3KKFRE13A0NK9&field1=${latitud}&field2=${longitud}`;
+
+let delay = 0;
+const subirDatos = (latitud, longitud) => {
+  setTimeout(() => {
+    const recurso = subirDatosURL(latitud, longitud);
+    fetch(recurso)
+      .then((response) => console.log(response));
+  }, 16000 * delay);
+  delay += 1;
+};
 
 var localizaciones = [];
 
 if (localizaciones.length === 0) {
-  fetch(URL())
+  fetch(ObtenerDatosURL())
     .then((response) => response.json())
-    .then(data => {
-      const localizaciones = data.feeds.map(feed => [feed.field1, feed.field2])
-      console.log(localizaciones)
-      mostrarMapa(localizaciones)
-    })
+    .then((data) => {
+      const localizaciones = data.feeds.map((feed) => [
+        feed.field1,
+        feed.field2,
+      ]);
+      console.log(localizaciones);
+      mostrarMapa(localizaciones);
+    });
 }
 
 function mostrarMapa(localizaciones) {
@@ -36,10 +52,15 @@ function mostrarMapa(localizaciones) {
     .openOn(map);
 
   function onMapClick(e) {
+    const latlng = e.latlng;
+    console.log(latlng);
+    subirDatos(latlng.lat, latlng.lng);
+    /*
     popup
       .setLatLng(e.latlng)
       .setContent(`You clicked the map at ${e.latlng.toString()}`)
       .openOn(map);
+      */
   }
 
   map.on("click", onMapClick);
