@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #ifndef MODEM_H
 #define MODEM_H
 
@@ -8,7 +9,7 @@ struct GPSData {
   float latitude;
   float longitude;
   int altitude;
-  int status;
+  int status = 1;
 };
 
 class Modem {
@@ -80,7 +81,9 @@ void Modem::sendATCommand(String command, int delayTime = 1000) {
 }
 
 GPSData Modem::getGPSData() {
+  sendATCommand("AT+CGNSPWR=1", 1000);  
   sendATCommand("AT+CGPSINF=0", 1000);   // Solicita la información GPS
+  Serial.println(this->lastResponse);
   String response = this->lastResponse;  // Lee la respuesta del modem
 
   int index = response.indexOf("+CGPSINF: 0,");
