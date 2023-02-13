@@ -13,7 +13,13 @@ void setup() {
 }
 
 void loop() {
+  GPSData gpsData = modem.getGPSData();
+  if(gpsData.status == -1) {
+    Serial.println("Fallo a conseguir datos del gps");
+    return;
+  }
 
+  modem.httpGetRequest(gpsData);
 }
 
 

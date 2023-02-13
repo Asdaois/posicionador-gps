@@ -21,6 +21,7 @@ public:
   void begin();
   void connectToLTE(APNS::APN_VENEZUELA unAPN);
   void sendATCommand(String command, int delayTime = 1000);
+  void httpGetRequest(GPSData gpsData);
   GPSData getGPSData();
 
 private:
@@ -59,7 +60,10 @@ void Modem::connectToLTE(APNS::APN_VENEZUELA unAPN) {
   sendATCommand("AT+SAPBR=3,1,\"APN\"," + String("\"") + apn.apn + "\"", 3000);  // Establece el nombre de punto de acceso (APN)
   sendATCommand("AT+SAPBR=1,1", 3000);                                           // Inicia la sesión de conexión a Internet
   sendATCommand("AT+SAPBR=2,1", 3000);                                           // Verifica el estado de la conexión
-
+  sendATCommand("AT+COPS?");
+  sendATCommand("AT+CGNAPN");
+  sendATCommand("AT+CNACT=1");
+  sendATCommand("AT+CNACT?");
   // Verifica si se ha conectado exitosamente a la red LTE
   if (modemSerial.find("OK")) {
     Serial.println("Connected to LTE network.");
@@ -104,4 +108,30 @@ GPSData Modem::getGPSData() {
   errorData.status = -1;
   return errorData;  // En caso de error
 }
+
+void Modem::httpGetRequest(GPSData gpsData) {
+  sendATCommand("AT+SHCONF=\"URL\",\"http://api.thingspeak.com\"");
+  sendATCommand("AT+SHCONF=\"BODYLEN\",1024");
+  sendATCommand("AT+SHCONF=\"HEADERLEN\",350");
+  sendATCommand("AT+SHCONN");
+
+  if (modemSerial.find("+SHSTATE: 1")) {
+    sendATCommand("AT+SHCHEAD");
+    sendATCommand("AT+SHAHEAD=\"User-Agent\",\"curl/7.47.0\"");
+    sendATCommand("AT+SHAHEAD=\"Cache-control\",\"no-cache\"");
+    sendATCommand("AT+SHAHEAD=\"Connection\",\"keep-alive\"");
+    sendATCommand("AT+SHAHEAD=\"Accept\",\"*/*\"");
+    String request = "AT+SHREQ=\"/update?api_key=0LM3KKFRE13A0NK9&field1=" + String(gpsData.latitude) + "&field2=" + String(gpsData.longitude) + "&field3=" + String(gpsData.altitude) + "&status=" + String(gpsData.status) + "\",1";
+    sendATCommand(request);
+
+    if (modemSerial.find("+SHREQ: \"GET\",200")) {
+      Serial.println("Data successfully sent to API.");
+    } else {
+      Serial.println("Error sending data to API.");
+    }
+  } else {
+    Serial.println("Error connecting to API.");
+  }
+}
+
 #endif
