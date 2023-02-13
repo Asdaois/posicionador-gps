@@ -1,4 +1,8 @@
+#ifndef MODEM_H
+#define MODEM_H
+
 #include <SoftwareSerial.h>
+#include "Apn.h"
 
 class Modem {
   public:
@@ -6,7 +10,7 @@ class Modem {
         Serial.println("Initializing modem...");      
     };
     void begin();
-    void connectToLTE();
+    void connectToLTE(APNS::APN_VENEZUELA unAPN);
     void sendATCommand(String command, int delayTime = 1000);
     
   private:
@@ -36,11 +40,12 @@ void Modem::begin() {
   Serial.println("Modem initialized.");
 }
 
-void Modem::connectToLTE() {
+void Modem::connectToLTE(APNS::APN_VENEZUELA unAPN) {
+  ApnDatos apn = CrearApn(unAPN);
    // Configura la conexión a la red LTE
   sendATCommand("AT+CGATT=1"); // Conecta el modem a la red
   sendATCommand("AT+SAPBR=3,1,\"Contype\",\"LTE\""); // Establece el tipo de conexión a LTE
-  sendATCommand("AT+SAPBR=3,1,\"APN\",\"internet.comcel.com.co\"", 3000); // Establece el nombre de punto de acceso (APN)
+  sendATCommand("AT+SAPBR=3,1,\"APN\"," + String("\"") + apn.apn + "\"", 3000); // Establece el nombre de punto de acceso (APN)
   sendATCommand("AT+SAPBR=1,1", 3000); // Inicia la sesión de conexión a Internet
   sendATCommand("AT+SAPBR=2,1", 3000); // Verifica el estado de la conexión
 
@@ -59,3 +64,5 @@ void Modem::sendATCommand(String command, int delayTime = 1000) {
     Serial.write(modemSerial.read());
   }
 }
+
+#endif
