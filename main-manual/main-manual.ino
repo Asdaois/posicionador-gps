@@ -7,12 +7,9 @@ void setup() {
   while (!Serial) {
     ;
   }
-  Serial.println("Initializing modem...");
-  
 
-  Serial.begin(9600);
   modem.begin();
-  modem.connectToLTE();
+  modem.connectToLTE(APNS::APN_VENEZUELA::Movistar);
 }
 
 void loop() {
