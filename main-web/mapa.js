@@ -2,6 +2,7 @@ const URL = () =>
   "https://api.thingspeak.com/channels/2004262/feeds.json?api_key=A9GEUJVRWAWOVQRJ&results=20&timezone=America/Caracas";
 
 var localizaciones = [];
+var localizacionsPorDias = {};
 
 if (localizaciones.length === 0) {
   fetch(URL())
@@ -43,4 +44,13 @@ function mostrarMapa(localizaciones) {
   }
 
   map.on("click", onMapClick);
+}
+
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = ('0' + (date.getMonth() + 1)).slice(-2);
+  const day = ('0' + date.getDate()).slice(-2);
+  const formattedDate = `${year}-${month}-${day}`;
+  return formattedDate;
 }

@@ -9,7 +9,7 @@ void setup() {
   }
 
   modem.begin();
-  modem.connectToLTE(APNS::APN_VENEZUELA::Movistar);
+  modem.connectToLTE(APNS::APN_VENEZUELA::Digitel);
 }
 
 void loop() {

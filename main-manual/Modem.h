@@ -31,6 +31,8 @@ private:
 
 void Modem::begin() {
   modemSerial.begin(9600);
+  Serial.println("Reseteando mode para evitar complicaciones");
+  sendATCommand("AT+CFUN=1,1", 10000);
 
   // Verificar calidad de señal
   sendATCommand("AT+CSQ", 1000);
@@ -48,6 +50,7 @@ void Modem::begin() {
   // Inicializa el modem
   sendATCommand("AT");         // Verifica si el modem está disponible y listo para recibir comandos
   sendATCommand("AT+CFUN=1");  // Habilita la funcionalidad total del modem
+  sendATCommand("AT+CBAND=ALL_MODE"); // Seleccionar todas las bandas para intentar funcionar en modo global
   sendATCommand("AT+COPS?");   // Verifica la operadora de red
   Serial.println("Modem initialized.");
 }
@@ -55,9 +58,9 @@ void Modem::begin() {
 void Modem::connectToLTE(APNS::APN_VENEZUELA unAPN) {
   ApnDatos apn = CrearApn(unAPN);
   // Configura la conexión a la red LTE
-  sendATCommand("AT+CGATT=1");                                                   // Conecta el modem a la red
   sendATCommand("AT+SAPBR=3,1,\"Contype\",\"LTE\"");                             // Establece el tipo de conexión a LTE
   sendATCommand("AT+SAPBR=3,1,\"APN\"," + String("\"") + apn.apn + "\"", 3000);  // Establece el nombre de punto de acceso (APN)
+  sendATCommand("AT+CGATT=1");                                                   // Conecta el modem a la red
   sendATCommand("AT+SAPBR=1,1", 3000);                                           // Inicia la sesión de conexión a Internet
   sendATCommand("AT+SAPBR=2,1", 3000);                                           // Verifica el estado de la conexión
   sendATCommand("AT+COPS?");
@@ -73,20 +76,21 @@ void Modem::connectToLTE(APNS::APN_VENEZUELA unAPN) {
 }
 
 void Modem::sendATCommand(String command, int delayTime = 1000) {
+  Serial.println(command);
   modemSerial.println(command);
   delay(delayTime);
   String response = "";
   while (modemSerial.available()) {
     int raw = modemSerial.read();
-    Serial.write(raw);
+    Serial.println("--->" + raw);
     response += String(raw);
   }
   this->lastResponse = response;
 }
 
 GPSData Modem::getGPSData() {
-  sendATCommand("AT+CGNSPWR=1", 1000);  
-  sendATCommand("AT+CGPSINF=0", 1000);   // Solicita la información GPS
+  sendATCommand("AT+CGNSPWR=1", 1000);  // Encender el GPS
+  sendATCommand("AT+CGPSINF=0", 1000);  // Solicita la información GPS
   Serial.println(this->lastResponse);
   String response = this->lastResponse;  // Lee la respuesta del modem
 
@@ -110,14 +114,17 @@ GPSData Modem::getGPSData() {
 }
 
 void Modem::httpGetRequest(GPSData gpsData) {
+  // Configurar parametros HTTP
   sendATCommand("AT+SHCONF=\"URL\",\"http://api.thingspeak.com\"");
   sendATCommand("AT+SHCONF=\"BODYLEN\",1024");
   sendATCommand("AT+SHCONF=\"HEADERLEN\",350");
-  sendATCommand("AT+SHCONN");
+  sendATCommand("AT+SHCONN"); // Realizar Conexion
 
+  // Verificarconexion a servidor
   if (modemSerial.find("+SHSTATE: 1")) {
-    sendATCommand("AT+SHCHEAD");
-    sendATCommand("AT+SHAHEAD=\"User-Agent\",\"curl/7.47.0\"");
+    sendATCommand("AT+SHCHEAD"); // Limpiar conexion
+    // Modificar cabeza para enviar datos
+    sendATCommand("AT+SHAHEAD=\"User-Agent\",\"curl/7.47.0\""); 
     sendATCommand("AT+SHAHEAD=\"Cache-control\",\"no-cache\"");
     sendATCommand("AT+SHAHEAD=\"Connection\",\"keep-alive\"");
     sendATCommand("AT+SHAHEAD=\"Accept\",\"*/*\"");
