@@ -1,7 +1,4 @@
 #define TINY_GSM_MODEM_SIM7000
-#include <TinyGsmClient.h>
-
-// Select your modem:
 
 // Set serial for debug console (to the Serial Monitor, default speed 115200)
 #define SerialMon Serial
@@ -41,7 +38,7 @@ SoftwareSerial SerialAT(2, 3);  // RX, TX
 // #define CALL_TARGET "+380xxxxxxxxx"
 
 // Your GPRS credentials, if any
-const char apn[] = "gprsweb.digitel.ve";
+const char apn[] = "internet.digitel.ve";
 
 
 // Your WiFi connection credentials, if applicable
@@ -63,7 +60,7 @@ TinyGsm        modem(SerialAT);
 
 String crearRecurso(String latitud, String longitud) {
   DBG("lat:" + latitud + ", lon:" + longitud);
-  return "/update??api_key=0LM3KKFRE13A0NK9&field1=" + latitud + "&field2=" + longitud;
+  return "/update??api_key=DB2F7LOEOFENB7G3&field1=" + latitud + "&field2=" + longitud;
 }
 
 void setup() {
@@ -176,7 +173,7 @@ void loop() {
     // Wait for data to arrive
     uint32_t start = millis();
     while (client.connected() && !client.available() &&
-           millis() - start < 30000L) {
+           millis() - start < 15000L) {
       delay(100);
     };
   }
