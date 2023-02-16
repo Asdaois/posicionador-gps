@@ -1,8 +1,8 @@
 const ObtenerDatosURL = () =>
-  "https://api.thingspeak.com/channels/2004262/feeds.json?api_key=A9GEUJVRWAWOVQRJ&results=20&timezone=America/Caracas";
+  "https://api.thingspeak.com/channels/2004262/feeds.json?api_key=HTR3SJUGSFO7LF8T&results=1&timezone=America/Caracas";
 
 const subirDatosURL = (latitud, longitud) =>
-  `https://api.thingspeak.com/update?api_key=0LM3KKFRE13A0NK9&field1=${latitud}&field2=${longitud}`;
+  `https://api.thingspeak.com/update?api_key=DB2F7LOEOFENB7G3&field1=${latitud}&field2=${longitud}`;
 
 let delay = 0;
 const subirDatos = (latitud, longitud) => {
@@ -20,12 +20,18 @@ if (localizaciones.length === 0) {
   fetch(ObtenerDatosURL())
     .then((response) => response.json())
     .then((data) => {
-      const localizaciones = data.feeds.map((feed) => [
+      if (data === -1) {
+        mostrarMapa([[ 8.242496159520803, -62.80645065303474]])
+        return;
+      }
+      const localizaciones = data?.feeds?.map((feed) => [
         feed.field1,
         feed.field2,
       ]);
+
       console.log(localizaciones);
       mostrarMapa(localizaciones);
+
     });
 }
 
