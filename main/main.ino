@@ -3,16 +3,8 @@
 // Set serial for debug console (to the Serial Monitor, default speed 115200)
 #define SerialMon Serial
 
-// Set serial for AT commands (to the module)
-// Use Hardware Serial on Mega, Leonardo, Micro
-#ifndef __AVR_ATmega328P__
-#define SerialAT Serial1
-
-// or Software Serial on Uno, Nano
-#else
 #include <SoftwareSerial.h>
 SoftwareSerial SerialAT(2, 3);  // RX, TX
-#endif
 
 // See all AT commands, if wanted
 // #define DUMP_AT_COMMANDS
@@ -50,17 +42,11 @@ const char server[]   = "api.thingspeak.com";
 
 #include <TinyGsmClient.h>
 
-#ifdef DUMP_AT_COMMANDS
-#include <StreamDebugger.h>
-StreamDebugger debugger(SerialAT, SerialMon);
-TinyGsm        modem(debugger);
-#else
 TinyGsm        modem(SerialAT);
-#endif
 
 String crearRecurso(String latitud, String longitud) {
   DBG("lat:" + latitud + ", lon:" + longitud);
-  return "/update??api_key=DB2F7LOEOFENB7G3&field1=" + latitud + "&field2=" + longitud;
+  return "/update??api_key=&field1=" + latitud + "&field2=" + longitud;
 }
 
 void setup() {
@@ -173,7 +159,7 @@ void loop() {
     // Wait for data to arrive
     uint32_t start = millis();
     while (client.connected() && !client.available() &&
-           millis() - start < 15000L) {
+           millis() - start < 30000L) {
       delay(100);
     };
   }

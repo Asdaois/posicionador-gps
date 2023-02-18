@@ -7,11 +7,36 @@ var localizacionsPorDias = {};
 if (localizaciones.length === 0) {
   fetch(URL())
     .then((response) => response.json())
-    .then(data => {
-      const localizaciones = data.feeds.map(feed => [feed.field1, feed.field2])
-      console.log(localizaciones)
-      mostrarMapa(localizaciones)
-    })
+    .then((data) => {
+      const localizaciones = data.feeds.map((feed) => [
+        feed.field1,
+        feed.field2,
+      ]);
+      console.log(localizaciones);
+      const groupedFeeds = {};
+      localizaciones.forEach((feed) => {
+        const date = moment(feed.created_at);
+        const year = date.year();
+        const month = date.month();
+        const day = date.date();
+
+        if (!groupedFeeds[year]) {
+          groupedFeeds[year] = {};
+        }
+
+        if (!groupedFeeds[year][month]) {
+          groupedFeeds[year][month] = {};
+        }
+
+        if (!groupedFeeds[year][month][day]) {
+          groupedFeeds[year][month][day] = [];
+        }
+
+        groupedFeeds[year][month][day].push(feed);
+      });
+      console.log({ groupedFeeds });
+      mostrarMapa(localizaciones);
+    });
 }
 
 function mostrarMapa(localizaciones) {
@@ -49,8 +74,8 @@ function mostrarMapa(localizaciones) {
 function formatDate(dateStr) {
   const date = new Date(dateStr);
   const year = date.getFullYear();
-  const month = ('0' + (date.getMonth() + 1)).slice(-2);
-  const day = ('0' + date.getDate()).slice(-2);
+  const month = ("0" + (date.getMonth() + 1)).slice(-2);
+  const day = ("0" + date.getDate()).slice(-2);
   const formattedDate = `${year}-${month}-${day}`;
   return formattedDate;
 }
