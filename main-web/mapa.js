@@ -80,8 +80,14 @@ function mostrarMapa(localizaciones) {
   }
 
   map.on("click", onMapClick);
+
+  function cleanMap() {
+    map.clearAllEventListeners()
+    map.remove()
+  }
+
   console.log({map})
-  return map.remove;
+  return cleanMap;
 }
 
 function formatDate(dateStr) {
